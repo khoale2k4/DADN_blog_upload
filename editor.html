@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="vi">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Simple Text Editor with Image Upload</title>
+    <style>
+        :root {
+            --bg: #f7f8fb;
+            --panel: #fff;
+            --accent: #0f62fe
+        }
+
+        body {
+            font-family: Inter, system-ui, Segoe UI, Roboto, Arial;
+            background: var(--bg);
+            margin: 0;
+            padding: 24px
+        }
+
+        .editor-wrap {
+            max-width: 900px;
+            margin: 0 auto
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px
+        }
+
+        .toolbar button {
+            background: var(--panel);
+            border: 1px solid #e6e8eb;
+            padding: 8px 10px;
+            border-radius: 8px;
+            cursor: pointer
+        }
+
+        .toolbar button.active {
+            box-shadow: 0 0 0 3px rgba(15, 98, 254, 0.08);
+            border-color: var(--accent)
+        }
+
+        .toolbar input[type=file] {
+            display: none
+        }
+
+        .editor {
+            min-height: 320px;
+            border-radius: 10px;
+            padding: 16px;
+            background: var(--panel);
+            border: 1px solid #e6e8eb;
+            outline: none
+        }
+
+        .editor:focus {
+            box-shadow: 0 0 0 3px rgba(15, 98, 254, 0.06)
+        }
+
+        .hint {
+            color: #667;
+            font-size: 13px;
+            margin-top: 6px
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px
+        }
+
+        .drop-overlay {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.2);
+            z-index: 9999
+        }
+
+        .drop-overlay.show {
+            display: flex
+        }
+
+        .drop-overlay .box {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px
+        }
+
+        img.inserted {
+            max-width: 100%;
+            height: auto;
+            border-radius: 6px;
+            display: block;
+            margin: 8px 0
+        }
+    </style>
+</head>
+
+<body>
+    <div class="editor-wrap">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+            <h2 style="margin:0">Text editor đơn giản (upload ảnh)</h2>
+            <small style="color:#666">— chèn ảnh vào vị trí con trỏ, kéo-thả được</small>
+        </div>
+
+        <div class="toolbar" role="toolbar" aria-label="Editor toolbar">
+            <button type="button" data-cmd="bold" title="Bold (Ctrl/Cmd+B)">B</button>
+            <button type="button" data-cmd="italic" title="Italic (Ctrl/Cmd+I)">I</button>
+            <button type="button" data-cmd="underline" title="Underline">U</button>
+            <button type="button" data-cmd="insertUnorderedList" title="Bullet list">• List</button>
+
+            <label style="margin-left:8px">
+                <input id="fileInput" type="file" accept="image/*" multiple />
+                <button type="button" id="btnImage">Insert Image</button>
+            </label>
+
+            <button type="button" id="btnClear">Clear</button>
+            <button type="button" id="btnHtml">Show HTML</button>
+        </div>
+
+        <div id="editor" class="editor" contenteditable="true" spellcheck="true" aria-multiline="true">
+            <p>Bắt đầu nhập... thử chèn ảnh bằng nút "Insert Image" hoặc kéo và thả ảnh vào đây.</p>
+        </div>
+
+        <div class="controls">
+            <div class="hint">Tip: dùng Ctrl/Cmd + B / I để in đậm / in nghiêng</div>
+            <div>
+                <button id="saveBtn">Export HTML</button>
+            </div>
+        </div>
+
+        <div id="output" style="margin-top:12px;display:none">
+            <h3>Nội dung HTML</h3>
+            <textarea id="htmlOut" style="width:100%;height:180px"></textarea>
+        </div>
+    </div>
+
+    <div class="drop-overlay" id="dropOverlay">
+        <div class="box">Thả ảnh vào đây để chèn</div>
+    </div>
+
+    <script>
+        const editor = document.getElementById('editor');
+        const fileInput = document.getElementById('fileInput');
+        const btnImage = document.getElementById('btnImage');
+        const btnHtml = document.getElementById('btnHtml');
+        const htmlOut = document.getElementById('htmlOut');
+        const output = document.getElementById('output');
+        const saveBtn = document.getElementById('saveBtn');
+        const dropOverlay = document.getElementById('dropOverlay');
+
+        // Toolbar commands
+        document.querySelectorAll('.toolbar button[data-cmd]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const cmd = btn.getAttribute('data-cmd');
+                document.execCommand(cmd);
+                editor.focus();
+            })
+        });
+
+        // Open file picker when user clicks Insert Image label button
+        btnImage.addEventListener('click', () => fileInput.click());
+
+        // Handle file input change: read images and insert where the caret is
+        fileInput.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files || []);
+            for (const f of files) {
+                if (!f.type.startsWith('image/')) continue;
+                const dataUrl = await readFileAsDataURL(f);
+                insertImageAtCursor(dataUrl, f.name);
+            }
+            fileInput.value = '';
+        });
+
+        // Drag & drop support
+        ['dragenter', 'dragover'].forEach(ev => {
+            document.addEventListener(ev, (e) => {
+                if (e.dataTransfer && Array.from(e.dataTransfer.types).includes('Files')) {
+                    e.preventDefault();
+                    dropOverlay.classList.add('show');
+                }
+            })
+        });
+
+        document.addEventListener('dragleave', (e) => {
+            // hide overlay when leaving window
+            dropOverlay.classList.remove('show');
+        });
+
+        document.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            dropOverlay.classList.remove('show');
+            const files = Array.from(e.dataTransfer.files || []);
+            // place caret at drop position if possible
+            placeCaretAtPoint(e.clientX, e.clientY);
+            for (const f of files) {
+                if (!f.type.startsWith('image/')) continue;
+                const dataUrl = await readFileAsDataURL(f);
+                insertImageAtCursor(dataUrl, f.name);
+            }
+        });
+
+        // Read file to data URL
+        function readFileAsDataURL(file) {
+            return new Promise((res, rej) => {
+                const r = new FileReader();
+                r.onload = () => res(r.result);
+                r.onerror = rej;
+                r.readAsDataURL(file);
+            })
+        }
+
+        // Insert image at the current cursor position
+        function insertImageAtCursor(src, alt = "image") {
+            const img = document.createElement('img');
+            img.src = src;
+            img.alt = alt;
+            img.className = 'inserted';
+            // try modern Selection/Range
+            const sel = window.getSelection();
+            if (!sel || sel.rangeCount === 0) {
+                editor.appendChild(img);
+                return;
+            }
+            const range = sel.getRangeAt(0);
+            range.deleteContents();
+            // if inserting into a text node, split it
+            range.insertNode(img);
+            // move caret after the image
+            range.setStartAfter(img);
+            range.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(range);
+            editor.focus();
+        }
+
+        // Place caret at point (used for drop)
+        function placeCaretAtPoint(x, y) {
+            if (document.caretRangeFromPoint) {
+                const range = document.caretRangeFromPoint(x, y);
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+            } else if (document.caretPositionFromPoint) {
+                const pos = document.caretPositionFromPoint(x, y);
+                const range = document.createRange();
+                range.setStart(pos.offsetNode, pos.offset);
+                range.collapse(true);
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+            }
+        }
+
+        // Show HTML
+        btnHtml.addEventListener('click', () => {
+            output.style.display = 'block';
+            htmlOut.value = editor.innerHTML;
+            htmlOut.focus();
+        });
+
+        // Export HTML (download)
+        saveBtn.addEventListener('click', () => {
+            const blob = new Blob([editor.innerHTML], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'content.html';
+            document.body.appendChild(a); a.click(); a.remove();
+            URL.revokeObjectURL(url);
+        });
+
+        // Clear
+        document.getElementById('btnClear').addEventListener('click', () => {
+            if (confirm('Xóa toàn bộ nội dung?')) editor.innerHTML = '';
+        });
+
+        // keyboard shortcuts for bold/italic
+        editor.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+                e.preventDefault(); document.execCommand('bold');
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'i') {
+                e.preventDefault(); document.execCommand('italic');
+            }
+        });
+
+        // Optional: sanitize pasted images (convert file->dataURL) and prevent external img src
+        editor.addEventListener('paste', async (e) => {
+            const items = Array.from(e.clipboardData && e.clipboardData.items ? e.clipboardData.items : []);
+            const imageItems = items.filter(it => it.type && it.type.startsWith('image/'));
+            if (imageItems.length) {
+                e.preventDefault();
+                for (const it of imageItems) {
+                    const file = it.getAsFile();
+                    const dataUrl = await readFileAsDataURL(file);
+                    insertImageAtCursor(dataUrl, file.name);
+                }
+            }
+        });
+
+        // Prevent dropping files outside to open in browser
+        window.addEventListener('dragover', e => e.preventDefault());
+        window.addEventListener('drop', e => e.preventDefault());
+    </script>
+</body>
+
+</html>
