@@ -3,6 +3,7 @@ import {
     Bold, Italic, Underline, List, Image as ImageIcon, Trash2, File as FileIcon
 } from "lucide-react";
 import { uploadFile } from "../utils/uploadFile";
+import getFileIcon from "../utils/getFileIcon";
 
 const ToolbarButton = ({ onClick, children }) => (
     <button
@@ -84,14 +85,42 @@ export default function SimpleTextEditor({
             try {
                 const url = await uploadFile(file);
 
+                const wrapper = document.createElement("div");
+                wrapper.contentEditable = "false";
+                wrapper.className = "my-2 relative group";
+
+                const container = document.createElement("div");
+                container.className =
+                    "flex items-center gap-3 p-3 border rounded-lg bg-gray-50 shadow-sm max-w-sm";
+
+                const icon = document.createElement("div");
+                icon.className =
+                    "flex-shrink-0 w-10 h-10 flex items-center justify-center rounded bg-blue-100";
+                icon.innerHTML = getFileIcon(file.name);
+
                 const link = document.createElement("a");
                 link.href = url;
                 link.download = file.name;
-                link.innerText = `📎 ${file.name}`;
+                link.innerText = file.name;
                 link.className =
-                    "text-blue-600 underline my-2 block hover:text-blue-800";
+                    "text-blue-600 font-medium underline truncate hover:text-blue-800 max-w-[200px]";
 
-                insertNode(link);
+                const removeBtn = document.createElement("button");
+                removeBtn.innerHTML = "✕";
+                removeBtn.className =
+                    "absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm opacity-0 group-hover:opacity-100 transition";
+                removeBtn.onclick = () => {
+                    wrapper.remove();
+                    handleInput();
+                };
+
+                container.appendChild(icon);
+                container.appendChild(link);
+
+                wrapper.appendChild(container);
+                wrapper.appendChild(removeBtn);
+
+                insertNode(wrapper);
                 handleInput();
             } catch (err) {
                 console.error("Upload document error:", err);
@@ -100,39 +129,6 @@ export default function SimpleTextEditor({
         if (fileInputRefDoc.current) fileInputRefDoc.current.value = "";
     };
 
-    // const handleDocChange = async (e) => {
-    //     const files = Array.from(e.target.files || []);
-    //     for (const file of files) {
-    //         try {
-    //             const url = await uploadFile(file);
-
-    //             const container = document.createElement("div");
-    //             container.className =
-    //                 "flex items-center gap-2 p-2 border rounded-md my-2 bg-gray-50 shadow-sm max-w-sm";
-
-    //             const icon = document.createElement("div");
-    //             icon.className = "flex-shrink-0 w-10 h-10 flex items-center justify-center rounded bg-blue-100";
-    //             icon.innerHTML = getFileIcon(file.name); 
-
-    //             const link = document.createElement("a");
-    //             link.href = url;
-    //             link.download = file.name;
-    //             link.innerText = file.name;
-    //             link.className =
-    //                 "text-blue-600 underline truncate hover:text-blue-800 max-w-[200px]";
-
-    //             container.appendChild(icon);
-    //             container.appendChild(link);
-
-    //             insertNode(container);
-    //             handleInput();
-    //         } catch (err) {
-    //             console.error("Upload document error:", err);
-    //         }
-    //     }
-    //     if (fileInputRefDoc.current) fileInputRefDoc.current.value = "";
-    // };
-    
     const handlePaste = async (e) => {
         const items = e.clipboardData?.items || [];
         for (const item of items) {
@@ -184,16 +180,24 @@ export default function SimpleTextEditor({
         const selection = window.getSelection();
         if (!selection || selection.rangeCount === 0) {
             editorRef.current?.appendChild(node);
+            editorRef.current?.appendChild(document.createElement("br"));
         } else {
             const range = selection.getRangeAt(0);
             range.deleteContents();
             range.insertNode(node);
-            range.setStartAfter(node);
-            range.collapse(true);
+
+            const br = document.createElement("br");
+            node.parentNode.insertBefore(br, node.nextSibling);
+
+            range.setStartAfter(br);
+            range.setEndAfter(br);
             selection.removeAllRanges();
             selection.addRange(range);
         }
+        handleInput();
     };
+
+
 
     const handleClear = () => {
         if (window.confirm("Bạn có chắc muốn xóa toàn bộ nội dung?")) {
