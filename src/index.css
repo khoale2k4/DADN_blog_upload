@@ -2,3 +2,9 @@
 
 @source "../index.html";
 @source "./**/*.{js,jsx,ts,tsx}";
+
+.placeholder-div:empty:before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  pointer-events: none;
+}

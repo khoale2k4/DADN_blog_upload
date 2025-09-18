@@ -4,7 +4,7 @@ import { uploadFile } from "../utils/uploadFile";
 import getIDFromDownloadLink from "../utils/getLinkFromUploadedFile";
 
 export default function NewPost() {
-    const [data, setData] = useState(null);
+    const [data, setData] = useState('');
 
     const handleSave = async () => {
         try {

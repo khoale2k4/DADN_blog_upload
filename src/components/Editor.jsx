@@ -1,6 +1,6 @@
 import { useRef, useEffect } from "react";
 import {
-    Bold, Italic, Underline, List, Image as ImageIcon, Trash2
+    Bold, Italic, Underline, List, Image as ImageIcon, Trash2, File as FileIcon
 } from "lucide-react";
 import { uploadFile } from "../utils/uploadFile";
 
@@ -22,13 +22,27 @@ export default function SimpleTextEditor({
 }) {
     const editorRef = useRef(null);
     const fileInputRef = useRef(null);
+    const fileInputRefDoc = useRef(null);
 
     useEffect(() => {
         if (editorRef.current && initData !== editorRef.current.innerHTML) {
-            editorRef.current.innerHTML = initData;
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(initData, "text/html");
+
+            doc.querySelectorAll("img").forEach((img) => {
+                const realSrc = img.getAttribute("src");
+                if (realSrc) {
+                    img.setAttribute("src", realSrc);
+                    img.setAttribute(
+                        "class",
+                        "max-w-full h-auto rounded-lg my-2 bg-blue-100"
+                    );
+                }
+            });
+
+            editorRef.current.innerHTML = doc.body.innerHTML;
         }
     }, [initData]);
-
 
     const handleInput = () => {
         if (setData && editorRef.current) {
@@ -64,7 +78,61 @@ export default function SimpleTextEditor({
         if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
+    const handleDocChange = async (e) => {
+        const files = Array.from(e.target.files || []);
+        for (const file of files) {
+            try {
+                const url = await uploadFile(file);
 
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = file.name;
+                link.innerText = `📎 ${file.name}`;
+                link.className =
+                    "text-blue-600 underline my-2 block hover:text-blue-800";
+
+                insertNode(link);
+                handleInput();
+            } catch (err) {
+                console.error("Upload document error:", err);
+            }
+        }
+        if (fileInputRefDoc.current) fileInputRefDoc.current.value = "";
+    };
+
+    // const handleDocChange = async (e) => {
+    //     const files = Array.from(e.target.files || []);
+    //     for (const file of files) {
+    //         try {
+    //             const url = await uploadFile(file);
+
+    //             const container = document.createElement("div");
+    //             container.className =
+    //                 "flex items-center gap-2 p-2 border rounded-md my-2 bg-gray-50 shadow-sm max-w-sm";
+
+    //             const icon = document.createElement("div");
+    //             icon.className = "flex-shrink-0 w-10 h-10 flex items-center justify-center rounded bg-blue-100";
+    //             icon.innerHTML = getFileIcon(file.name); 
+
+    //             const link = document.createElement("a");
+    //             link.href = url;
+    //             link.download = file.name;
+    //             link.innerText = file.name;
+    //             link.className =
+    //                 "text-blue-600 underline truncate hover:text-blue-800 max-w-[200px]";
+
+    //             container.appendChild(icon);
+    //             container.appendChild(link);
+
+    //             insertNode(container);
+    //             handleInput();
+    //         } catch (err) {
+    //             console.error("Upload document error:", err);
+    //         }
+    //     }
+    //     if (fileInputRefDoc.current) fileInputRefDoc.current.value = "";
+    // };
+    
     const handlePaste = async (e) => {
         const items = e.clipboardData?.items || [];
         for (const item of items) {
@@ -112,6 +180,20 @@ export default function SimpleTextEditor({
         return img;
     };
 
+    const insertNode = (node) => {
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) {
+            editorRef.current?.appendChild(node);
+        } else {
+            const range = selection.getRangeAt(0);
+            range.deleteContents();
+            range.insertNode(node);
+            range.setStartAfter(node);
+            range.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+    };
 
     const handleClear = () => {
         if (window.confirm("Bạn có chắc muốn xóa toàn bộ nội dung?")) {
@@ -149,6 +231,17 @@ export default function SimpleTextEditor({
                     <ImageIcon size={18} />
                 </ToolbarButton>
 
+                <input
+                    type="file"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.txt"
+                    ref={fileInputRefDoc}
+                    onChange={handleDocChange}
+                    className="hidden"
+                />
+                <ToolbarButton onClick={() => fileInputRefDoc.current?.click()}>
+                    <FileIcon size={18} />
+                </ToolbarButton>
+
                 <div className="w-[1px] h-6 bg-gray-300 mx-2"></div>
 
                 <ToolbarButton onClick={handleClear}>
@@ -158,12 +251,13 @@ export default function SimpleTextEditor({
 
             <div
                 ref={editorRef}
-                className="min-h-[300px] max-h-[75vh] overflow-y-auto p-4 focus:outline-none prose max-w-none"
+                className="min-h-[300px] max-h-[75vh] overflow-y-auto p-4 focus:outline-none prose max-w-none placeholder-div"
                 contentEditable={editable}
                 spellCheck={true}
                 onInput={handleInput}
                 onPaste={handlePaste}
                 data-placeholder="Bắt đầu nhập nội dung của bạn ở đây..."
+                aria-placeholder="hehe"
             />
         </div>
     );

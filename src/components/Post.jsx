@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import SimpleTextEditor from "./Editor";
 import { useParams } from "react-router-dom";
+import downloadHtml from "../utils/downloadFile";
 
 export default function Post() {
     const { id } = useParams();
@@ -8,20 +9,14 @@ export default function Post() {
 
     useEffect(() => {
         const fetchHtml = async () => {
-            try {
-                const res = await fetch(`http://localhost:8080/api/files/download/${id}.html`);
-                if (!res.ok) throw new Error("Không tải được file HTML");
-                const html = await res.text();
-                setData(html);
-            } catch (err) {
-                console.error("Lỗi khi tải HTML:", err);
-            }
+            const res = await downloadHtml(id);
+            setData(res);
         };
         fetchHtml();
     }, [id]);
 
     return (
-        <div>
+        <div className="w-1/2">
             <SimpleTextEditor initData={data} setData={setData} editable={false} />
         </div>
     );
