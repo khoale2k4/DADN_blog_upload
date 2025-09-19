@@ -1,6 +1,8 @@
+import contants from '../core/contants'
+
 export default async function downloadHtml(id) {
     try {
-        const res = await fetch(`http://localhost:8080/api/files/download/${id}.html`);
+        const res = await fetch(contants.getFileEndpoint + `/${id}.html`);
         if (!res.ok) throw new Error("Không tải được file HTML");
         const html = await res.text();
         return html;

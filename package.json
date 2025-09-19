@@ -13,6 +13,7 @@
     "@ckeditor/ckeditor5-build-classic": "^41.4.2",
     "@ckeditor/ckeditor5-react": "^11.0.0",
     "@ckeditor/ckeditor5-upload": "^46.1.0",
+    "@stomp/stompjs": "^7.2.0",
     "ckeditor5": "^46.1.0",
     "lucide-react": "^0.544.0",
     "react": "^19.1.1",

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import SimpleTextEditor from "./Editor";
+import SimpleTextEditor from "../components/Editor";
 import { useParams } from "react-router-dom";
 import downloadHtml from "../utils/downloadFile";
 

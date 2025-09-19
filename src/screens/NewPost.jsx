@@ -1,5 +1,5 @@
 import { useState } from "react";
-import SimpleTextEditor from "./Editor";
+import SimpleTextEditor from "../components/Editor";
 import { uploadFile } from "../utils/uploadFile";
 import getIDFromDownloadLink from "../utils/getLinkFromUploadedFile";
 
