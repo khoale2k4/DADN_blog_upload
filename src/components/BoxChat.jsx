@@ -43,14 +43,14 @@ export default function BoxChat({
                 });
 
                 // Gửi event join
-                client.publish({
-                    destination: contants.joinConversationEndpoint,
-                    body: JSON.stringify({
-                        sender: userId_1,
-                        conversationId: conId,
-                        type: "JOIN",
-                    }),
-                });
+                // client.publish({
+                //     destination: contants.joinConversationEndpoint,
+                //     body: JSON.stringify({
+                //         sender: userId_1,
+                //         conversationId: conId,
+                //         type: "JOIN",
+                //     }),
+                // });
             },
         });
 
