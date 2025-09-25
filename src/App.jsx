@@ -12,7 +12,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/post/:id" element={<Post />} />
           <Route path="/new_post" element={<NewPost />} />
-          <Route path="/chat/:conId/:userId" element={<Chat />} />
+          <Route path="/chat/:userId_1/:userId_2" element={<Chat />} />
         </Routes>
       </div>
     </Router>

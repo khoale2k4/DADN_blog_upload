@@ -6,7 +6,7 @@ export default function Chat() {
 
     return (
         <div className="w-[500px]">
-            <BoxChat conId={params["conId"]} userId={params["userId"]} />
+            <BoxChat userId_1={params["userId_1"]} userId_2={params["userId_2"]} />
         </div>
     );
 }

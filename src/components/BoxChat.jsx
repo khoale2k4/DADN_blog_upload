@@ -6,10 +6,11 @@ import { Client } from "@stomp/stompjs";
 import contants from '../core/contants'
 
 export default function BoxChat({
-    conId,
-    userId,
+    userId_1,
+    userId_2,
 }) {
     const [messages, setMessages] = useState([]);
+    const [conId, setConId] = useState();
     const [input, setInput] = useState("");
     const fileInputRef = useRef(null);
     const chatEndRef = useRef(null);
@@ -29,14 +30,14 @@ export default function BoxChat({
                 client.subscribe(contants.subscribeMessageEndpoint + `${conId}`, (msg) => {
                     const body = JSON.parse(msg.body);
                     if (body["type"] == "JOIN") return;
-                    console.log("received: ", body, userId);
+                    console.log("received: ", body, userId_1);
                     setMessages((prev) => [
                         ...prev,
                         {
                             type: body.type === "CHAT" ? "text" : body.type.toLowerCase(),
                             content: body.content,
                             sender: body.sender,
-                            isOwn: body.sender === userId,
+                            isOwn: body.sender === userId_1,
                         },
                     ]);
                 });
@@ -45,7 +46,7 @@ export default function BoxChat({
                 client.publish({
                     destination: contants.joinConversationEndpoint,
                     body: JSON.stringify({
-                        sender: userId,
+                        sender: userId_1,
                         conversationId: conId,
                         type: "JOIN",
                     }),
@@ -59,7 +60,21 @@ export default function BoxChat({
         return () => {
             client.deactivate();
         };
-    }, [conId, userId]);
+    }, [conId]);
+
+    useEffect(() => {
+        console.log(userId_1, userId_2);
+        const getConId = async () => {
+            const res = await fetch(contants.getConIdEndpoint + "/" + userId_1 + "/" + userId_2, {
+                method: "GET",
+            });
+            if (!res.ok) return;
+            const data = await res.json();
+            setConId(data.data);
+        }
+
+        getConId();
+    }, [userId_1, userId_2]);
 
     useEffect(() => {
         const fetchMessages = async () => {
@@ -75,13 +90,12 @@ export default function BoxChat({
                     type: message.type === "CHAT" ? "text" : message.type.toLowerCase(),
                     content: message.content,
                     sender: message.sender,
-                    isOwn: message.sender === userId,
+                    isOwn: message.sender === userId_1,
                 }
             }));
         }
-
         fetchMessages();
-    }, [conId, userId]);
+    }, [conId])
 
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -93,7 +107,7 @@ export default function BoxChat({
         stompClientRef.current.publish({
             destination: contants.sendMessageEndpoint,
             body: JSON.stringify({
-                sender: userId,
+                sender: userId_1,
                 content: input,
                 type: "CHAT",
                 conversationId: conId,
@@ -112,7 +126,7 @@ export default function BoxChat({
             stompClientRef.current.publish({
                 destination: contants.sendMessageEndpoint,
                 body: JSON.stringify({
-                    sender: userId,
+                    sender: userId_1,
                     content: url,
                     type: "IMAGE",
                     conversationId: conId,
@@ -135,7 +149,7 @@ export default function BoxChat({
                         stompClientRef.current.publish({
                             destination: contants.sendMessageEndpoint,
                             body: JSON.stringify({
-                                sender: userId,
+                                sender: userId_1,
                                 content: url,
                                 type: "IMAGE",
                                 conversationId: conId,

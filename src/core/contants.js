@@ -6,6 +6,7 @@ const getFileEndpoint = server + "/api/files/download"; // api/files/download/{f
 const webSocket = "ws://localhost:8080/ws-chat/websocket";
 const subscribeMessageEndpoint = "/topic/conversation."; // topic/conversation.{conId}
 const getMessagesEndpoint = server + "/api/chat"; // api/chat/{conId}
+const getConIdEndpoint = server + "/api/chat"; // api/chat/{conId}
 const joinConversationEndpoint = "/app/addUser";
 const sendMessageEndpoint = "/app/sendMessage";
 
@@ -17,5 +18,6 @@ export default {
     subscribeMessageEndpoint,
     getMessagesEndpoint,
     joinConversationEndpoint,
+    getConIdEndpoint,
     sendMessageEndpoint
 }
