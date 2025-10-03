@@ -5,17 +5,15 @@ import { uploadFile } from "../utils/uploadFile";
 import { Client } from "@stomp/stompjs";
 import contants from '../core/contants'
 
-export default function BoxChat({
-    userId_1,
-    userId_2,
+export default function GroupBoxChat({
+    conId,
+    userId,
 }) {
     const [messages, setMessages] = useState([]);
-    const [conId, setConId] = useState();
     const [input, setInput] = useState("");
     const fileInputRef = useRef(null);
     const chatEndRef = useRef(null);
     const stompClientRef = useRef(null);
-    const [lock, setLock] = useState(false);
 
     useEffect(() => {
         const client = new Client({
@@ -31,32 +29,27 @@ export default function BoxChat({
                 client.subscribe(contants.subscribeMessageEndpoint + `${conId}`, (msg) => {
                     const body = JSON.parse(msg.body);
                     if (body["type"] == "JOIN") return;
-                    console.log("received: ", body, userId_1);
-                    if (body.sender === userId_1) {
-                        setMessages(prev => prev.slice(0, -1));
-                    }
-                    setLock(false);
+                    console.log("received: ", body, userId);
                     setMessages((prev) => [
                         ...prev,
                         {
                             type: body.type === "CHAT" ? "text" : body.type.toLowerCase(),
                             content: body.content,
                             sender: body.sender,
-                            isOwn: body.sender === userId_1,
-                            sending: false,
+                            isOwn: body.sender === userId,
                         },
                     ]);
                 });
 
                 // Gửi event join
-                // client.publish({
-                //     destination: contants.joinConversationEndpoint,
-                //     body: JSON.stringify({
-                //         sender: userId_1,
-                //         conversationId: conId,
-                //         type: "JOIN",
-                //     }),
-                // });
+                client.publish({
+                    destination: contants.joinConversationEndpoint,
+                    body: JSON.stringify({
+                        sender: userId,
+                        conversationId: conId,
+                        type: "JOIN",
+                    }),
+                });
             },
         });
 
@@ -66,51 +59,29 @@ export default function BoxChat({
         return () => {
             client.deactivate();
         };
-    }, [conId]);
+    }, [conId, userId]);
 
     useEffect(() => {
-        console.log(userId_1, userId_2);
-        const getConId = async () => {
-            const res = await fetch(contants.getConIdEndpoint + "/" + userId_1 + "/" + userId_2, {
+        const fetchMessages = async () => {
+            const res = await fetch(contants.getMessagesEndpoint + "/" + conId, {
                 method: "GET",
             });
+
             if (!res.ok) return;
             const data = await res.json();
-            setConId(data.data);
-            setMessages(data.messages.map((message) => {
+
+            setMessages(data.data.map((message) => {
                 return {
                     type: message.type === "CHAT" ? "text" : message.type.toLowerCase(),
                     content: message.content,
                     sender: message.sender,
-                    isOwn: message.sender === userId_1,
-                    sending: false,
+                    isOwn: message.sender === userId,
                 }
             }));
         }
 
-        getConId();
-    }, [userId_1, userId_2]);
-
-    // useEffect(() => {
-    //     const fetchMessages = async () => {
-    //         const res = await fetch(contants.getMessagesEndpoint + "/" + conId, {
-    //             method: "GET",
-    //         });
-
-    //         if (!res.ok) return;
-    //         const data = await res.json();
-
-    //         setMessages(data.data.map((message) => {
-    //             return {
-    //                 type: message.type === "CHAT" ? "text" : message.type.toLowerCase(),
-    //                 content: message.content,
-    //                 sender: message.sender,
-    //                 isOwn: message.sender === userId_1,
-    //             }
-    //         }));
-    //     }
-    //     fetchMessages();
-    // }, [conId])
+        fetchMessages();
+    }, [conId, userId]);
 
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -119,34 +90,17 @@ export default function BoxChat({
     const sendMessage = () => {
         if (!input.trim() || !stompClientRef.current?.connected) return;
 
-        setMessages((prev) => [
-            ...prev,
-            {
-                type: "CHAT",
-                content: input,
-                sender: userId_1,
-                isOwn: true,
-                sending: true,
-            },
-        ]);
-        setInput("");
-
-        if(lock) {
-            console.log("Locking");
-            return;
-        }
-
-        setLock(true);
-
         stompClientRef.current.publish({
             destination: contants.sendMessageEndpoint,
             body: JSON.stringify({
-                sender: userId_1,
+                sender: userId,
                 content: input,
                 type: "CHAT",
                 conversationId: conId,
             }),
         });
+
+        setInput("");
     };
 
     const handleFileChange = async (e) => {
@@ -158,7 +112,7 @@ export default function BoxChat({
             stompClientRef.current.publish({
                 destination: contants.sendMessageEndpoint,
                 body: JSON.stringify({
-                    sender: userId_1,
+                    sender: userId,
                     content: url,
                     type: "IMAGE",
                     conversationId: conId,
@@ -181,7 +135,7 @@ export default function BoxChat({
                         stompClientRef.current.publish({
                             destination: contants.sendMessageEndpoint,
                             body: JSON.stringify({
-                                sender: userId_1,
+                                sender: userId,
                                 content: url,
                                 type: "IMAGE",
                                 conversationId: conId,
@@ -212,7 +166,6 @@ export default function BoxChat({
                             message={msg}
                             isOwn={msg.isOwn}
                             needSender={needSender}
-                            sending={msg.sending}
                         />
                     );
                 })}
@@ -239,7 +192,6 @@ export default function BoxChat({
                 <input
                     type="text"
                     value={input}
-                    // disabled={lock}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => {
                         if (e.key === "Enter") {

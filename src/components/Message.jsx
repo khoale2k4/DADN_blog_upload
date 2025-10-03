@@ -1,6 +1,7 @@
 import { User } from "lucide-react";
 
 export default function Message({ message, isOwn, needSender = true, sending = false }) {
+    console.log("sending ", sending);
     return (
         <div
             className={`flex flex-col ${isOwn ? "items-end" : "items-start"}
@@ -14,11 +15,11 @@ export default function Message({ message, isOwn, needSender = true, sending = f
             )}
 
             <div
-                className={`px-3 py-2 shadow-sm break-words transition-all
+                className={`px-3 py-2 shadow-sm break-words transition-all ${sending ? 'bg-gray-200' : 'bg-blue-500'} 
                     ${isOwn
                         ? needSender
-                            ? `${sending?'bg-gray-200':'bg-blue-500'} text-white rounded-2xl rounded-br-none`
-                            : `${sending?'bg-gray-200':'bg-blue-500'} text-white rounded-xl`
+                            ? `text-white rounded-2xl rounded-br-none`
+                            : `text-white rounded-xl`
                         : needSender
                             ? "bg-gray-100 text-gray-800 rounded-2xl rounded-bl-none"
                             : "bg-gray-100 text-gray-800 rounded-xl"
