@@ -10,7 +10,7 @@ export default function NewPost() {
         try {
             const blob = new Blob([data], { type: "text/html" });
             const file = new File([blob], "document.html", { type: "text/html" });
-            const res = await uploadFile(file);
+            const res = await uploadFile(file, '123.com');
 
             console.log("Upload thành công:", res);
             alert("ID post mới: " + getIDFromDownloadLink(res));

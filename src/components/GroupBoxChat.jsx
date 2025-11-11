@@ -107,7 +107,7 @@ export default function GroupBoxChat({
         const file = e.target.files[0];
         if (!file) return;
         try {
-            const url = await uploadFile(file);
+            const url = await uploadFile(file, '123.com');
 
             stompClientRef.current.publish({
                 destination: contants.sendMessageEndpoint,
@@ -131,7 +131,7 @@ export default function GroupBoxChat({
                 const file = item.getAsFile();
                 if (file) {
                     try {
-                        const url = await uploadFile(file);
+                        const url = await uploadFile(file, '123.com');
                         stompClientRef.current.publish({
                             destination: contants.sendMessageEndpoint,
                             body: JSON.stringify({

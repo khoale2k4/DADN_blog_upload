@@ -65,7 +65,7 @@ export default function SimpleTextEditor({
             const tempImg = insertTempImage();
 
             try {
-                const url = await uploadFile(file);
+                const url = await uploadFile(file, '123.com');
                 tempImg.src = url;
                 tempImg.alt = file.name;
                 tempImg.className = "max-w-full h-auto rounded-lg my-2";
@@ -83,7 +83,7 @@ export default function SimpleTextEditor({
         const files = Array.from(e.target.files || []);
         for (const file of files) {
             try {
-                const url = await uploadFile(file);
+                const url = await uploadFile(file, '123.com');
 
                 const wrapper = document.createElement("div");
                 wrapper.contentEditable = "false";
@@ -138,7 +138,7 @@ export default function SimpleTextEditor({
                 if (file) {
                     const tempImg = insertTempImage();
                     try {
-                        const url = await uploadFile(file);
+                        const url = await uploadFile(file, '123.com');
                         tempImg.src = url;
                         tempImg.alt = file.name;
                         tempImg.className = "max-w-full h-auto rounded-lg my-2";

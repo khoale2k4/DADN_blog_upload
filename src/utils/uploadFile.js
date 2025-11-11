@@ -1,13 +1,12 @@
 import contants from '../core/contants'
 
-export async function uploadFile(file) {
+export async function uploadFile(file, url) {
     try {
         const formData = new FormData();
         formData.append("file", file);
-        console.log(contants.uploadFileEndpoint);
 
-        const res = await fetch(contants.uploadFileEndpoint, {
-            method: "POST",
+        const res = await fetch(url, {
+            method: "PUT",
             body: formData,
         });
 
